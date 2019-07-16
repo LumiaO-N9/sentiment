@@ -15,7 +15,7 @@ SPIDER_MODULES = ['sentiment_spider.spiders']
 NEWSPIDER_MODULE = 'sentiment_spider.spiders'
 
 # kafka地址
-BOOTSTRAP_SERVERS = "47.102.118.141:9092"
+BOOTSTRAP_SERVERS = "node1:9092,node3:9092,node2:9092"
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 # USER_AGENT = 'sentimentspider (+http://www.yourdomain.com)'
@@ -31,7 +31,7 @@ SCHEDULER = "scrapy_redis.scheduler.Scheduler"
 # Ensure all spiders share same duplicates filter through redis.
 DUPEFILTER_CLASS = "scrapy_redis.dupefilter.RFPDupeFilter"
 
-REDIS_HOST = "47.102.118.141"
+REDIS_HOST = "node2"
 REDIS_PORT = "6379"
 
 ######################################################################
