@@ -2,16 +2,12 @@ import scrapy
 import json
 import re
 from sentiment_spider.items import ArticleItem, CommentUrlItem, WeiBoUserItem
+from scrapy_redis.spiders import RedisSpider
 
 
-class weibo_search_spider(scrapy.Spider):
+# url 取redis中获取   key  = weibo_search_spider:start_urls
+class weibo_search_spider(RedisSpider):
     name = "weibo_search_spider"
-
-    # 爬虫入口
-    def start_requests(self):
-        url = "https://m.weibo.cn/api/container/getIndex?containerid=100103type%3D60%26q%3D%E5%A4%A9%E5%AE%AB%E4%BA%8C%E5%8F%B7%E8%A6%81%E9%80%80%E4%BC%91%E4%BA%86%26t%3D0&page_type=searchall"
-
-        yield scrapy.Request(url=url, callback=self.parse)
 
     # 回调函数
     def parse(self, response):
@@ -53,7 +49,6 @@ class weibo_search_spider(scrapy.Spider):
                 articleItem["text"] = text
                 articleItem["page_url"] = page_url
 
-                print(articleItem)
                 # 发生给pipelines
                 yield articleItem
 
@@ -68,7 +63,6 @@ class weibo_search_spider(scrapy.Spider):
                 commenturlItem["url"] = commenturl
                 commenturlItem["sentiment_id"] = sentiment_id
                 # 发生给pipelines
-                print(commenturlItem)
                 yield commenturlItem
 
                 #######################################微博用户信息################################################

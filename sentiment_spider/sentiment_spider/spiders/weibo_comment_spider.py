@@ -1,23 +1,54 @@
+# -*- coding:utf-8 -*-
 import scrapy
 import json
-import re
-import time
 from sentiment_spider.items import WeiboCommentItem
+from scrapy_redis.spiders import RedisSpider
+
+import time
+from scrapy.conf import settings
+import re
 import random
+import redis
 
 
-class weibo_comment_spider(scrapy.Spider):
-    name = "weibo_comment_spider"
+# url 从redis  中获取
+# 通过名称获取
+class weibo_comment_spider(RedisSpider):
+    name = "weibo_comment_spider"  # 爬虫名称
 
-    # 爬虫入口
     def start_requests(self):
-        url = "https://m.weibo.cn/comments/hotflow?id=4394343743609962&mid=4394343743609962&max_id_type=0"
+        head = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Origin": "https://passport.weibo.cn",
+            "Referer": "https://passport.weibo.cn/signin/login?entry=mweibo&res=wel&wm=3349&r=https%3A%2F%2Fm.weibo.cn%2Fdetail%2F4357286229257109",
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36"
+        }
+        # 获取登录页面
+        yield scrapy.Request(url="https://passport.weibo.cn/signin/login", headers=head, callback=self.login)
 
-        yield scrapy.Request(url=url, callback=self.parse)
+    def login(self, response):
+        head = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Origin": "https://passport.weibo.cn",
+            "Referer": "https://passport.weibo.cn/signin/login?entry=mweibo&res=wel&wm=3349&r=https%3A%2F%2Fm.weibo.cn%2Fdetail%2F4357286229257109",
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36"
+        }
+        formdata = {
+            'username': settings.get("WEIBO_LOGIN_USERNAME"),
+            "password": settings.get("WEIBO_LOGIN_PASSWORD"),
+        }
+        # 登录
+        yield scrapy.FormRequest(url="https://passport.weibo.cn/sso/login", formdata=formdata,
+                                 callback=self.parse_login, headers=head)
 
-    # 回调函数
+    # 登录之后响应
+    def parse_login(self, response):
+        print(response.text)
+
+    # 获取到搜索页面的所有商品列表
     def parse(self, response):
 
+        # 获取舆情编号
         sentiment_id = 1
 
         head = {
@@ -66,7 +97,6 @@ class weibo_comment_spider(scrapy.Spider):
                     item["total_number"] = total_number  # 回复人数
                     item["like_count"] = like_count  # 点赞数量
                     item["text"] = text
-
 
                     yield item
 
