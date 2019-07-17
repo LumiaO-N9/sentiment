@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>舆情详细页面</title>
+    <base href="<%=basePath%>">
+
+    <!-- echarts画图依赖包  -->
+    <script src="js/echarts.min.js"></script>
+
+    <!-- 词云依赖包  -->
+    <script src="js/echarts-wordcloud.min.js"></script>
+
+    <!-- 新 Bootstrap 核心 CSS 文件 -->
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="js/jquery-3.3.1.min.js"></script>
+
+    <!-- 最新的 Bootstrap 核心 JavaScript 文件 -->
+    <script src="js/bootstrap_3.3.7.js"></script>
+
+
+    <link rel="stylesheet" href="css/bootstrap-table.min.css">
+    <script src="js/bootstrap-table.min.js"></script>
+</head>
+<body>
+<div class="container">
+    <div class="row clearfix">
+        <div class="col-md-12 column">
+            <div class="jumbotron">
+                <h1>
+                    舆情系统
+                </h1>
+                <p>
+                    舆情系统集成了舆情监测、舆情采集、舆情智能分析、舆情处理、舆情预警、舆情搜索、舆情报告辅助生成、舆情短信自动提醒等核心功能。帮助客户全面掌握舆情动态，正确进行舆论引导。为确保我国互联网络大众媒体的舆论导向的正确性起到一定的辅助作用，实现为政府分忧，对网络舆情进行监控和管理。用舆情系统，宣传部门可以有效的规范互联网信息，引导健康有益的舆论导向。系统对于促进加强互联网信息监管，组织力量展开信息整理和深入分析，应对网络突发的公共事件，全面掌握社情民意起决定性作用。
+                </p>
+            </div>
+            <h3>
+                ${sentiment.name }
+            </h3>
+            <h3>
+                关键字：${sentiment.words }
+            </h3>
+            <h3>
+                创建时间：${sentiment.date }
+            </h3>
+        </div>
+        <a id="modal-74909" href="/" role="button" class="btn active btn-primary" data-toggle="modal">返回主页</a>
+    </div>
+</div>
+</div>
+
+<!-- 为ECharts准备一个具备大小（宽高）的Dom -->
+<div id="main" style="height:400px"></div>
+<div id="main1" style="height:400px"></div>
+
+<script type="text/javascript">
+    // 基于准备好的dom，初始化echarts图表
+    var myChart = echarts.init(document.getElementById('main'));
+    // 为echarts对象加载数据
+    $.get("http://localhost:8080/getRealTimeSentiment?id=${sentiment.id }").done(function (data) {
+        myChart.setOption({
+            title: {
+                text: '舆情走势'
+            },
+            tooltip: {
+                trigger: 'axis'
+            },
+            legend: {
+                data: ['正面', '负面', '中性']
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '3%',
+                containLabel: true
+            },
+            toolbox: {
+                feature: {
+                    saveAsImage: {}
+                }
+            },
+            xAxis: {
+                type: 'category',
+                data: data.x,
+                splitLine: {
+                    show: false
+                }
+            },
+            yAxis: {
+                type: 'value',
+                boundaryGap: [0, '100%'],
+                splitLine: {
+                    show: false
+                }
+            },
+            series: [
+                {
+                    name: '正面',
+                    type: 'line',
+                    stack: '总量',
+                    data: data.y3
+                },
+                {
+                    name: '负面',
+                    type: 'line',
+                    stack: '总量',
+                    data: data.y1
+                },
+                {
+                    name: '中性',
+                    type: 'line',
+                    stack: '总量',
+                    data: data.y2
+                }
+            ]
+        });
+    })
+
+</script>
+
+<script type="text/javascript">
+
+    var chart = echarts.init(document.getElementById('main1'));
+
+    $.get("http://localhost:8080/getWordCloud/${sentiment.id }").done(function (data) {
+        chart.setOption({
+            series: [{
+                //类型  词云
+                type: 'wordCloud',
+                // 文本的样式
+                textStyle: {
+                    normal: {
+                        fontFamily: 'sans-serif',
+                        fontWeight: 'bold',
+                        // 获取颜色回调函数
+                        color: function () {
+                            // 随机产生颜色
+                            return 'rgb(' + [
+                                Math.round(Math.random() * 160),
+                                Math.round(Math.random() * 160),
+                                Math.round(Math.random() * 160)
+                            ].join(',') + ')';
+                        }
+                    },
+                    emphasis: {
+                        shadowBlur: 10,
+                        shadowColor: '#333'
+                    }
+                },
+
+                // 数据
+                data: data
+            }]
+        });
+    })
+
+
+</script>
+
+<div class="panel">
+    <div class="panel-body" style="padding-bottom: 1px;">
+        <form class="form-horizontal">
+            <div class="form-group">
+                <div class="col-sm-3">
+                    <!-- 自定义搜索框 -->
+                    <input type="text" name="searchString" id="searchString_id" class="form-control" placeholder="请输入关键字" onkeydown="javascript:if(event.keyCode==13) searchId();" />
+                </div>
+                <div class="col-sm-1">
+                    <button type="button" class="btn btn-primary btn-w-m" id="queryBtn">
+                        <span class="glyphicon glyphicon-search"></span> 搜索
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="ibox-content">
+    <table id="myTable"></table>
+</div>
+<script type="text/javascript">
+    $(document).ready(function () {
+        //调用函数，初始化表格
+        initTable();
+        //当点击查询按钮的时候执行,bootstrap-table前端分页是不能使用搜索功能，所以可以提取出来自定义搜索。后台代码，在后面给出
+        $("#queryBtn").bind("click", initTable);
+    });
+    function initTable() {
+        //先销毁表格
+        $('#myTable').bootstrapTable('destroy');
+        $('#myTable').bootstrapTable({
+            url: "wordSearch/${sentiment.id }",//请求后台的URL（*）
+            method: 'get',
+            dataType: "json",
+            dataField: 'rows',
+            striped: true,//设置为 true 会有隔行变色效果
+            undefinedText: "空",//当数据为 undefined 时显示的字符
+            pagination: true, //设置为 true 会在表格底部显示分页条。
+            showToggle: "true",//是否显示 切换试图（table/card）按钮
+            showColumns: "true",//是否显示 内容列下拉框
+            pageNumber: 1,//初始化加载第一页，默认第一页
+            pageSize: 10,//每页的记录行数（*）
+            pageList: [10, 20, 30, 40],//可供选择的每页的行数（*），当记录条数大于最小可选择条数时才会出现
+            paginationPreText: '上一页',
+            paginationNextText: '下一页',
+            search: false, //是否显示表格搜索,bootstrap-table服务器分页不能使用搜索功能，可以自定义搜索框，上面jsp中已经给出，操作方法也已经给出
+            striped : true,//隔行变色
+            showColumns: false,//是否显示 内容列下拉框
+            showToggle: false, //是否显示详细视图和列表视图的切换按钮
+            clickToSelect: true,  //是否启用点击选中行
+            data_local: "zh-US",//表格汉化
+            sidePagination: "server", //服务端处理分页
+            queryParamsType : "limit",//设置为 ‘limit’ 则会发送符合 RESTFul 格式的参数.
+            queryParams: function (params) {//自定义参数，这里的参数是传给后台的，我这是是分页用的
+//            请求服务器数据时，你可以通过重写参数的方式添加一些额外的参数，例如 toolbar 中的参数 如果
+//　　　　　　　queryParamsType = 'limit' ,返回参数必须包含limit, offset, search, sort, order
+//            queryParamsType = 'undefined', 返回参数必须包含: pageSize, pageNumber, searchText, sortName, sortOrder.
+//            返回false将会终止请求。
+                return {//这里的params是table提供的
+                    offset: params.offset,//从数据库第几条记录开始
+                    limit: params.limit,//找多少条
+                    word: $("#searchString_id").val() //这个就是搜索框中的内容，可以自动传到后台，搜索实现在xml中体现
+                };
+            },
+            responseHandler: function (res) {
+                //如果后台返回的json格式不是{rows:[{...},{...}],total:100},可以在这块处理成这样的格式
+                return res;
+            },
+            columns: [{
+                field: 'user_id',
+                title: '用户编号'
+            }, {
+                field: 'created_at',
+                title: '时间'
+            }, {
+                field: 'reposts_count',
+                title: '转发人数'
+            }, {
+                field: 'attitudes_count',
+                title: '点赞人数'
+            }, {
+                field: 'comments_count',
+                title: '评论人数'
+            }, {
+                field: 'text',
+                title: '微博内容'
+            }, {
+                field: 'page_url',
+                title: '地址'
+            } ],
+            onLoadSuccess: function () {
+            },
+            onLoadError: function () {
+                showTips("数据加载失败！");
+            }
+        });
+    }
+
+    function operateFormatter(value, row, index) {
+        return '<button  type="button" onClick="showConsumeRecord('+id+')"  class="btn btn-xs btn-primary" data-toggle="modal" data-target="#consumeModal">查看</button>';
+    }
+</script>
+
+
+<div class="panel">
+    <div class="panel-body" style="padding-bottom: 1px;">
+        <form class="form-horizontal">
+            <div class="form-group">
+                <div class="col-sm-3">
+                    <!-- 自定义搜索框 -->
+                    <input type="text" name="searchString" id="searchString_id1" class="form-control" placeholder="请输入关键字" onkeydown="javascript:if(event.keyCode==13) searchId();" />
+                </div>
+                <div class="col-sm-1">
+                    <button type="button" class="btn btn-primary btn-w-m" id="queryBtn1">
+                        <span class="glyphicon glyphicon-search"></span> 搜索
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="ibox-content">
+    <table id="comment"></table>
+</div>
+<script type="text/javascript">
+    //$(document).ready(function () {
+        //调用函数，初始化表格
+        initTable();
+        //当点击查询按钮的时候执行,bootstrap-table前端分页是不能使用搜索功能，所以可以提取出来自定义搜索。后台代码，在后面给出
+        $("#queryBtn1").bind("click", initTable);
+    //});
+    function initTable() {
+        //先销毁表格
+        $('#comment').bootstrapTable('destroy');
+        $('#comment').bootstrapTable({
+            url: "wordSearch/${sentiment.id }",//请求后台的URL（*）
+            method: 'get',
+            dataType: "json",
+            dataField: 'rows',
+            striped: true,//设置为 true 会有隔行变色效果
+            undefinedText: "空",//当数据为 undefined 时显示的字符
+            pagination: true, //设置为 true 会在表格底部显示分页条。
+            showToggle: "true",//是否显示 切换试图（table/card）按钮
+            showColumns: "true",//是否显示 内容列下拉框
+            pageNumber: 1,//初始化加载第一页，默认第一页
+            pageSize: 10,//每页的记录行数（*）
+            pageList: [10, 20, 30, 40],//可供选择的每页的行数（*），当记录条数大于最小可选择条数时才会出现
+            paginationPreText: '上一页',
+            paginationNextText: '下一页',
+            search: false, //是否显示表格搜索,bootstrap-table服务器分页不能使用搜索功能，可以自定义搜索框，上面jsp中已经给出，操作方法也已经给出
+            striped : true,//隔行变色
+            showColumns: false,//是否显示 内容列下拉框
+            showToggle: false, //是否显示详细视图和列表视图的切换按钮
+            clickToSelect: true,  //是否启用点击选中行
+            data_local: "zh-US",//表格汉化
+            sidePagination: "server", //服务端处理分页
+            queryParamsType : "limit",//设置为 ‘limit’ 则会发送符合 RESTFul 格式的参数.
+            queryParams: function (params) {//自定义参数，这里的参数是传给后台的，我这是是分页用的
+//            请求服务器数据时，你可以通过重写参数的方式添加一些额外的参数，例如 toolbar 中的参数 如果
+//　　　　　　　queryParamsType = 'limit' ,返回参数必须包含limit, offset, search, sort, order
+//            queryParamsType = 'undefined', 返回参数必须包含: pageSize, pageNumber, searchText, sortName, sortOrder.
+//            返回false将会终止请求。
+                return {//这里的params是table提供的
+                    offset: params.offset,//从数据库第几条记录开始
+                    limit: params.limit,//找多少条
+                    word: $("#searchString_id1").val() //这个就是搜索框中的内容，可以自动传到后台，搜索实现在xml中体现
+                };
+            },
+            responseHandler: function (res) {
+                //如果后台返回的json格式不是{rows:[{...},{...}],total:100},可以在这块处理成这样的格式
+                return res;
+            },
+            columns: [{
+                field: 'user_id',
+                title: '用户编号'
+            }, {
+                field: 'created_at',
+                title: '时间'
+            }, {
+                field: 'reposts_count',
+                title: '转发人数'
+            }, {
+                field: 'attitudes_count',
+                title: '点赞人数'
+            }, {
+                field: 'comments_count',
+                title: '评论人数'
+            }, {
+                field: 'text',
+                title: '微博内容'
+            } ],
+            onLoadSuccess: function () {
+            },
+            onLoadError: function () {
+                showTips("数据加载失败！");
+            }
+        });
+    }
+
+</script>
+
+</body>
+</html>
