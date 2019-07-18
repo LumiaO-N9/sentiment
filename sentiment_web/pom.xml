@@ -38,6 +38,12 @@
             <artifactId>mysql-connector-java</artifactId>
             <version>5.1.36</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.shujia</groupId>
+            <artifactId>sentiment_common</artifactId>
+            <version>1.0</version>
+        </dependency>
     </dependencies>
 
     <build>

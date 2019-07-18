@@ -1,10 +1,11 @@
 package com.shujia.web.controller;
 
+import com.shujia.common.JDBCUtil;
 import com.shujia.web.bean.Sentiment;
-import com.shujia.web.util.JDBCUtil;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.view.RedirectView;
+
 import java.sql.*;
 import java.util.ArrayList;
 

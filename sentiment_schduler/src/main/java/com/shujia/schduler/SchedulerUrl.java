@@ -1,6 +1,6 @@
 package com.shujia.schduler;
 
-import com.shujia.util.JDBCUtil;
+import com.shujia.common.JDBCUtil;
 import redis.clients.jedis.Jedis;
 
 import java.net.URLEncoder;

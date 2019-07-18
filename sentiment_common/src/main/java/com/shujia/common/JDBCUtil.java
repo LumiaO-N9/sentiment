@@ -1,7 +1,5 @@
-package com.shujia.web.util;
+package com.shujia.common;
 
-
-import com.shujia.web.common.Config;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -36,6 +34,12 @@ public class JDBCUtil {
 
     }
 
+
+    /**
+     * 获取jdbc连接
+     *
+     * @return
+     */
 
     public static Connection getConnection() {
 

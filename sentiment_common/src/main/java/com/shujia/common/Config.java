@@ -16,7 +16,7 @@
  * reproduction of this material is strictly forbidden unless prior 
  * written permission is obtained from China Telecom Corporation.
  **********************************************************************/
-package com.shujia.util;
+package com.shujia.common;
 
 
 import org.slf4j.Logger;
