@@ -4,15 +4,19 @@ import com.google.gson.Gson
 import com.shujia.bean.ScalaClass.{WeiBoUser, WeiboComment}
 import com.shujia.common.SparkTool
 import kafka.serializer.StringDecoder
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.hbase.client.{Get, HConnectionManager}
+import org.apache.hadoop.hbase.util.Bytes
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.streaming.dstream.ReceiverInputDStream
 import org.apache.spark.streaming.kafka.KafkaUtils
 import org.apache.spark.streaming.{Durations, StreamingContext}
+import redis.clients.jedis.Jedis
 
 object ComputeGenderIndex extends SparkTool {
 
   /**
-    * 计算每隔舆情评价人性别占比
+    * 计算每个舆情评价人性别占比
     *
     */
   /**
@@ -24,9 +28,11 @@ object ComputeGenderIndex extends SparkTool {
     //创建spark streaming上下文对象
     val ssc = new StreamingContext(sc, Durations.seconds(5))
 
+    ssc.checkpoint("data/checkpoint")
+
     val params = Map(
       "zookeeper.connect" -> "node1:2181,node2:2181,node3:2181",
-      "group.id" -> "asdasaasdsasdddasd",
+      "group.id" -> "asdasaasasd",
       "auto.offset.reset" -> "smallest",
       "zookeeper.connection.timeout.ms" -> "10000"
     )
@@ -37,48 +43,78 @@ object ComputeGenderIndex extends SparkTool {
       ssc, params, topics, StorageLevel.MEMORY_AND_DISK_SER
     )
 
-    //用户id为key的DS
     val commentDSKV = commentDS.map(line => {
       val gson = new Gson()
       //将json字符串转换成自定义对象
       val comment = gson.fromJson(line._2, classOf[WeiboComment])
       comment
-    }).map(c => (c.user_id, c))
+    })
+
+    //重hbase获取用户性别
+    val KVDS = commentDSKV.transform(rdd => {
+      val newRDD = rdd.mapPartitions(iter => {
+
+        //创建hbase连接
+        val conf: Configuration = new Configuration
+        conf.set("hbase.zookeeper.quorum", "node1:2181,node2:2181,node3:2181")
+        val connection = HConnectionManager.createConnection(conf)
+        val WeiBoUser = connection.getTable("WeiBoUser")
+
+        val list = iter.map(comment => {
+          //用户id
+          val userId = comment.user_id
+          //舆情编号
+          val sentiment_id = comment.sentiment_id
+
+          //通过用户id查询用户性别
+          val get = new Get(Bytes.toBytes(userId))
+          //指定需要查询的列
+          get.addColumn("info".getBytes(), "gender".getBytes())
+          val restltSet = WeiBoUser.get(get)
+          val gender = Bytes.toString(restltSet.getValue("info".getBytes(), "gender".getBytes()))
+
+          (sentiment_id + "_" + gender, 1)
+
+        })
+
+        list
+
+      })
+
+      newRDD
+    })
+
+    def fun = (seq: Seq[Int], opt: Option[Int]) => {
+      //当前batch结果
+      val curr = seq.sum
+      //之前batch的结果
+      val last = opt.getOrElse(0)
+
+      Option(curr + last)
+    }
+
+    //计算评价性别人数
+    val resultDS = KVDS.updateStateByKey(fun)
 
 
-    val userparams = Map(
-      "zookeeper.connect" -> "node1:2181,node2:2181,node3:2181",
-      "group.id" -> "asfasdaasdasd",
-      "auto.offset.reset" -> "smallest",
-      "zookeeper.connection.timeout.ms" -> "10000"
-    )
+    //将结果写入redis
 
-    val usertopics = Map("WeiBoUserItemTopic" -> 4)
+    resultDS.foreachRDD(rdd => {
+      rdd.foreachPartition(iter => {
+        val jedis = new Jedis("node2", 6379)
+        iter.foreach(line => {
+          val split = line._1.split("_")
+          val sentimentId = split(0)
+          val gender = split(1)
 
-    //读取kafka数据   评价表数据
-    val userDS: ReceiverInputDStream[(String, String)] = KafkaUtils.createStream[String, String, StringDecoder, StringDecoder](
-      ssc, userparams, usertopics, StorageLevel.MEMORY_AND_DISK_SER
-    )
+          //人数
+          val count = line._2
 
-
-    //用户id为key的DS
-    val userDSKV = userDS.map(line => {
-      val gson = new Gson()
-      //将json字符串转换成自定义对象
-      val user = gson.fromJson(line._2, classOf[WeiBoUser])
-      user
-    }).map(c => (c.id, c))
-
-    /**
-      *
-      * spark  刘表关联只能关联同一个batch的数据
-      *
-      * 会导致很多数据关联不上   在spark 2.3之后可以解决
-      *
-      */
-
-    commentDSKV.leftOuterJoin(userDSKV)
-      .print(100000)
+          jedis.hset(sentimentId, gender, count.toString)
+        })
+        jedis.close()
+      })
+    })
 
 
     ssc.start()
