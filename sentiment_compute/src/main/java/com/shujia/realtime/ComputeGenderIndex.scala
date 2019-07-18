@@ -1,7 +1,7 @@
 package com.shujia.realtime
 
 import com.google.gson.Gson
-import com.shujia.bean.ScalaClass.WeiboComment
+import com.shujia.bean.ScalaClass.{WeiBoUser, WeiboComment}
 import com.shujia.common.SparkTool
 import kafka.serializer.StringDecoder
 import org.apache.spark.storage.StorageLevel
@@ -26,11 +26,10 @@ object ComputeGenderIndex extends SparkTool {
 
     val params = Map(
       "zookeeper.connect" -> "node1:2181,node2:2181,node3:2181",
-      "group.id" -> "asdasasasdddasd",
+      "group.id" -> "asdasaasdsasdddasd",
       "auto.offset.reset" -> "smallest",
       "zookeeper.connection.timeout.ms" -> "10000"
     )
-
     val topics = Map("WeiBoCommentTopic" -> 4)
 
     //读取kafka数据   评价表数据
@@ -38,13 +37,48 @@ object ComputeGenderIndex extends SparkTool {
       ssc, params, topics, StorageLevel.MEMORY_AND_DISK_SER
     )
 
-
-    commentDS.map(line => {
+    //用户id为key的DS
+    val commentDSKV = commentDS.map(line => {
       val gson = new Gson()
       //将json字符串转换成自定义对象
       val comment = gson.fromJson(line._2, classOf[WeiboComment])
       comment
-    }).print()
+    }).map(c => (c.user_id, c))
+
+
+    val userparams = Map(
+      "zookeeper.connect" -> "node1:2181,node2:2181,node3:2181",
+      "group.id" -> "asfasdaasdasd",
+      "auto.offset.reset" -> "smallest",
+      "zookeeper.connection.timeout.ms" -> "10000"
+    )
+
+    val usertopics = Map("WeiBoUserItemTopic" -> 4)
+
+    //读取kafka数据   评价表数据
+    val userDS: ReceiverInputDStream[(String, String)] = KafkaUtils.createStream[String, String, StringDecoder, StringDecoder](
+      ssc, userparams, usertopics, StorageLevel.MEMORY_AND_DISK_SER
+    )
+
+
+    //用户id为key的DS
+    val userDSKV = userDS.map(line => {
+      val gson = new Gson()
+      //将json字符串转换成自定义对象
+      val user = gson.fromJson(line._2, classOf[WeiBoUser])
+      user
+    }).map(c => (c.id, c))
+
+    /**
+      *
+      * spark  刘表关联只能关联同一个batch的数据
+      *
+      * 会导致很多数据关联不上   在spark 2.3之后可以解决
+      *
+      */
+
+    commentDSKV.leftOuterJoin(userDSKV)
+      .print(100000)
 
 
     ssc.start()
