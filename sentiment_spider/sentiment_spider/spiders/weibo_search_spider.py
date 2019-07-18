@@ -3,16 +3,27 @@ import json
 import re
 from sentiment_spider.items import ArticleItem, CommentUrlItem, WeiBoUserItem
 from scrapy_redis.spiders import RedisSpider
-
+import redis
+from scrapy.conf import settings
 
 # url 取redis中获取   key  = weibo_search_spider:start_urls
 class weibo_search_spider(RedisSpider):
     name = "weibo_search_spider"
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # redis 连接池
+        self.pool = redis.ConnectionPool(host=settings.get("REDIS_HOST"), port=settings.get("REDIS_PORT"),
+                                         decode_responses=True)  # host是redis主机，需要redis服务端和客户端都起着 redis默认端口是6379
+
     # 回调函数
     def parse(self, response):
 
-        sentiment_id = 1
+        # 获取请求url
+        url = response.request.url
+        client = redis.Redis(connection_pool=self.pool, db=0)
+        # 从redis获取舆情id
+        sentiment_id = int(client.hget("url_flag", url))
 
         jsonstr = json.loads(response.text)
 

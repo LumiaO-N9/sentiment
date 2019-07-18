@@ -59,6 +59,10 @@ public class SchedulerUrl {
                         String key = "weibo_search_spider:start_urls";
                         jedis.lpush(key, url);
 
+
+                        //将url和舆情id的对应关系写入redis
+                        jedis.hset("url_flag", url, String.valueOf(id));
+
                     }
                 }
             }

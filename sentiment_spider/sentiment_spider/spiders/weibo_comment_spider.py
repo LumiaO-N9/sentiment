@@ -16,6 +16,12 @@ import redis
 class weibo_comment_spider(RedisSpider):
     name = "weibo_comment_spider"  # 爬虫名称
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # redis 连接池
+        self.pool = redis.ConnectionPool(host=settings.get("REDIS_HOST"), port=settings.get("REDIS_PORT"),
+                                         decode_responses=True)  # host是redis主机，需要redis服务端和客户端都起着 redis默认端口是6379
+
     def start_requests(self):
         head = {
             "Content-Type": "application/x-www-form-urlencoded",
@@ -48,8 +54,11 @@ class weibo_comment_spider(RedisSpider):
     # 获取到搜索页面的所有商品列表
     def parse(self, response):
 
-        # 获取舆情编号
-        sentiment_id = 1
+        # 获取请求url
+        url = response.request.url
+        client = redis.Redis(connection_pool=self.pool, db=0)
+        # 从redis获取舆情id
+        sentiment_id = int(client.hget("url_flag", url))
 
         head = {
             "Content-Type": "application/x-www-form-urlencoded",
@@ -105,6 +114,9 @@ class weibo_comment_spider(RedisSpider):
                 max_id = jsonStr['data']["max_id"]
                 max_id_type = jsonStr['data']["max_id_type"]
                 url = url % (id, mid, max_id, max_id_type)
+
+                # 将评价url和舆情id写入redis
+                client.hset("url_flag", url, sentiment_id)
 
                 # 暂停一会，防止被烦爬虫
                 time.sleep(random.randint(1, 3))
