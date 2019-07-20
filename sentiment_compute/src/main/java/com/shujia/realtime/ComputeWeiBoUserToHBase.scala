@@ -12,6 +12,7 @@ import org.apache.spark.storage.StorageLevel
 import org.apache.spark.streaming.dstream.ReceiverInputDStream
 import org.apache.spark.streaming.kafka.KafkaUtils
 import org.apache.spark.streaming.{Durations, StreamingContext}
+import com.shujia.Constant
 
 object ComputeWeiBoUserToHBase extends SparkTool {
 
@@ -28,7 +29,7 @@ object ComputeWeiBoUserToHBase extends SparkTool {
     val ssc = new StreamingContext(sc, Durations.seconds(2))
 
     val userparams = Map(
-      "zookeeper.connect" -> "node1:2181,node2:2181,node3:2181",
+      "zookeeper.connect" -> Constant.KAFKA_ZOOKEEPER_CONNECT,
       "group.id" -> "asdasdas",
       "auto.offset.reset" -> "smallest",
       "zookeeper.connection.timeout.ms" -> "10000"
@@ -63,7 +64,7 @@ object ComputeWeiBoUserToHBase extends SparkTool {
 
         //创建hbase连接
         val conf: Configuration = new Configuration
-        conf.set("hbase.zookeeper.quorum", "node1:2181,node2:2181,node3:2181")
+        conf.set("hbase.zookeeper.quorum", Constant.HBASE_ZOOKEEPER_CONNECT)
         val connection = HConnectionManager.createConnection(conf)
         val WeiBoUser = connection.getTable("WeiBoUser")
 

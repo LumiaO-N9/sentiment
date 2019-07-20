@@ -1,5 +1,6 @@
 package com.shujia.schduler;
 
+import com.shujia.common.Config;
 import com.shujia.common.JDBCUtil;
 import redis.clients.jedis.Jedis;
 
@@ -17,14 +18,15 @@ public class SchedulerUrl {
     public static void main(String[] args) throws Exception {
 
 
-        //创建redis连接
-
-        Jedis jedis = new Jedis("node2", 6379);
-
         String baseUrl = "https://m.weibo.cn/api/container/getIndex?containerid=100103type%3D60%26q%3D$1%26t%3D0&page_type=searchall&page=$2";
 
 
         while (true) {
+
+            //创建redis连接
+
+            Jedis jedis = new Jedis(Config.getString("redis.host"), 6379);
+
             /**
              *
              * 连接数据获取舆情信息
@@ -59,7 +61,6 @@ public class SchedulerUrl {
                         String key = "weibo_search_spider:start_urls";
                         jedis.lpush(key, url);
 
-
                         //将url和舆情id的对应关系写入redis
                         jedis.hset("url_flag", url, String.valueOf(id));
 
@@ -68,6 +69,7 @@ public class SchedulerUrl {
             }
 
 
+            jedis.close();
             //没5分钟执行一次
             Thread.sleep(5 * 60 * 1000);
         }

@@ -15,7 +15,7 @@ SPIDER_MODULES = ['sentiment_spider.spiders']
 NEWSPIDER_MODULE = 'sentiment_spider.spiders'
 
 # kafka地址
-BOOTSTRAP_SERVERS = "47.102.105.40:9092,47.102.118.141:9092"
+BOOTSTRAP_SERVERS = "47.102.118.141:9092,47.102.105.40:9092"
 
 # redis连接地址
 REDIS_HOST = "47.102.118.141"

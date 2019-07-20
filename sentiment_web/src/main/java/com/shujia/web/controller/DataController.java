@@ -1,5 +1,6 @@
 package com.shujia.web.controller;
 
+import com.shujia.common.Config;
 import com.shujia.common.JDBCUtil;
 import com.shujia.web.bean.GenderCount;
 import com.shujia.web.bean.Sentiment;
@@ -26,7 +27,7 @@ public class DataController {
         String key = id + "_gender";
 
         //查询redis获取性别占比
-        Jedis jedis = new Jedis("node2", 6379);
+        Jedis jedis = new Jedis(Config.getString("redis.host"), 6379);
 
         Map<String, String> map = jedis.hgetAll(key);
 

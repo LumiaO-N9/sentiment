@@ -102,7 +102,7 @@ object ComputeGenderIndex extends SparkTool {
 
     resultDS.foreachRDD(rdd => {
       rdd.foreachPartition(iter => {
-        val jedis = new Jedis("node2", 6379)
+        val jedis = new Jedis(Constant.REDIS_HOST, 6379)
         iter.foreach(line => {
           val split = line._1.split("_")
           val sentimentId = split(0)
