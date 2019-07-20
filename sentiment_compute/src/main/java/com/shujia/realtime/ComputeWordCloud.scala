@@ -5,9 +5,6 @@ import com.shujia.Constant
 import com.shujia.bean.ScalaClass.WeiboComment
 import com.shujia.common.{IK, SparkTool}
 import kafka.serializer.StringDecoder
-import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.hbase.client.{Get, HConnectionManager}
-import org.apache.hadoop.hbase.util.Bytes
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.streaming.dstream.ReceiverInputDStream
 import org.apache.spark.streaming.kafka.KafkaUtils
