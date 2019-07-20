@@ -12,6 +12,7 @@ import org.apache.spark.streaming.dstream.ReceiverInputDStream
 import org.apache.spark.streaming.kafka.KafkaUtils
 import org.apache.spark.streaming.{Durations, StreamingContext}
 import redis.clients.jedis.Jedis
+import com.shujia.Constant
 
 object ComputeGenderIndex extends SparkTool {
 
@@ -28,11 +29,11 @@ object ComputeGenderIndex extends SparkTool {
     //创建spark streaming上下文对象
     val ssc = new StreamingContext(sc, Durations.seconds(5))
 
-    ssc.checkpoint("data/checkpoint")
+    ssc.checkpoint(Constant.GENDER_INDEX_CHECKPOINT)
 
     val params = Map(
-      "zookeeper.connect" -> "node1:2181,node2:2181,node3:2181",
-      "group.id" -> "asdasaasasd",
+      "zookeeper.connect" -> Constant.KAFKA_ZOOKEEPER_CONNECT,
+      "group.id" -> "asdasaaasdsasd",
       "auto.offset.reset" -> "smallest",
       "zookeeper.connection.timeout.ms" -> "10000"
     )
@@ -56,7 +57,7 @@ object ComputeGenderIndex extends SparkTool {
 
         //创建hbase连接
         val conf: Configuration = new Configuration
-        conf.set("hbase.zookeeper.quorum", "node1:2181,node2:2181,node3:2181")
+        conf.set("hbase.zookeeper.quorum", Constant.HBASE_ZOOKEEPER_CONNECT)
         val connection = HConnectionManager.createConnection(conf)
         val WeiBoUser = connection.getTable("WeiBoUser")
 
@@ -110,7 +111,9 @@ object ComputeGenderIndex extends SparkTool {
           //人数
           val count = line._2
 
-          jedis.hset(sentimentId, gender, count.toString)
+          val key = sentimentId + "_gender"
+
+          jedis.hset(key, gender, count.toString)
         })
         jedis.close()
       })
