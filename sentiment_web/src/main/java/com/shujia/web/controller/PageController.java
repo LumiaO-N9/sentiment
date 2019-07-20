@@ -14,7 +14,6 @@ public class PageController {
      */
     @RequestMapping(value = "/{pagename}.do",   method = RequestMethod.GET)
     public String page(@PathVariable("pagename") String name) {
-        System.out.println(name);
         return name;
     }
 

@@ -54,12 +54,12 @@ public class SentimentController {
             PreparedStatement stat = connection.prepareStatement(sql);
             ResultSet resultSet = stat.executeQuery();
             while (resultSet.next()) {
-                Integer id = resultSet.getInt("id");
+                int id = resultSet.getInt("id");
                 String name = resultSet.getString("name");
                 String words = resultSet.getString("words");
                 Date date = resultSet.getDate("date");
 
-                String a_id = "<a href=\"sentimentinfo/" + id + "\">" + id + "</a>";
+                String a_id = "<a href=\"sentimentinfo.do?id=" + id + "\">" + id + "</a>";
 
                 Sentiment sentiment = new Sentiment(a_id, name, words, date);
 

@@ -90,7 +90,7 @@ object ComputeGenderIndex extends SparkTool {
       //之前batch的结果
       val last = opt.getOrElse(0)
 
-      Option(curr + last)
+      Some(curr + last)
     }
 
     //计算评价性别人数
