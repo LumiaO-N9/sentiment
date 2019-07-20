@@ -1,8 +1,9 @@
 package com.shujia.realtime
 
 import com.google.gson.Gson
-import com.shujia.bean.ScalaClass.{WeiBoUser, WeiboComment}
-import com.shujia.common.SparkTool
+import com.shujia.Constant
+import com.shujia.bean.ScalaClass.WeiboComment
+import com.shujia.common.{IK, SparkTool}
 import kafka.serializer.StringDecoder
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hbase.client.{Get, HConnectionManager}
@@ -12,12 +13,11 @@ import org.apache.spark.streaming.dstream.ReceiverInputDStream
 import org.apache.spark.streaming.kafka.KafkaUtils
 import org.apache.spark.streaming.{Durations, StreamingContext}
 import redis.clients.jedis.Jedis
-import com.shujia.Constant
 
-object ComputeGenderIndex extends SparkTool {
+object ComputeWordCloud extends SparkTool {
 
   /**
-    * 计算每个舆情评价人性别占比
+    * 计算每个舆情词云图
     *
     */
   /**
@@ -29,11 +29,11 @@ object ComputeGenderIndex extends SparkTool {
     //创建spark streaming上下文对象
     val ssc = new StreamingContext(sc, Durations.seconds(5))
 
-    ssc.checkpoint(Constant.GENDER_INDEX_CHECKPOINT)
+    ssc.checkpoint(Constant.WORD_CLOUD_INDEX_CHECKPOINT)
 
     val params = Map(
       "zookeeper.connect" -> Constant.KAFKA_ZOOKEEPER_CONNECT,
-      "group.id" -> "asdasaaasdsasd",
+      "group.id" -> "asdadasdd",
       "auto.offset.reset" -> "smallest",
       "zookeeper.connection.timeout.ms" -> "10000"
     )
@@ -51,68 +51,37 @@ object ComputeGenderIndex extends SparkTool {
       comment
     })
 
-    //重hbase获取用户性别
-    val KVDS = commentDSKV.transform(rdd => {
-      val newRDD = rdd.mapPartitions(iter => {
+    //1、对数据进行分词
+    val wordsDS = commentDSKV.flatMap(com => {
+      val sId = com.sentiment_id
+      val words = IK.fit(com.text)
 
-        //创建hbase连接
-        val conf: Configuration = new Configuration
-        conf.set("hbase.zookeeper.quorum", Constant.HBASE_ZOOKEEPER_CONNECT)
-        val connection = HConnectionManager.createConnection(conf)
-        val WeiBoUser = connection.getTable("WeiBoUser")
-
-        val list = iter.map(comment => {
-          //用户id
-          val userId = comment.user_id
-          //舆情编号
-          val sentiment_id = comment.sentiment_id
-
-          //通过用户id查询用户性别
-          val get = new Get(Bytes.toBytes(userId))
-          //指定需要查询的列
-          get.addColumn("info".getBytes(), "gender".getBytes())
-          val restltSet = WeiBoUser.get(get)
-          val gender = Bytes.toString(restltSet.getValue("info".getBytes(), "gender".getBytes()))
-
-          (sentiment_id + "_" + gender, 1)
-
-        })
-
-        list
-
-      })
-
-      newRDD
+      //增加舆情编号
+      words.map(word => sId + "_" + word)
     })
 
-    def fun = (seq: Seq[Int], opt: Option[Int]) => {
-      //当前batch结果
-      val curr = seq.sum
-      //之前batch的结果
-      val last = opt.getOrElse(0)
+    //统计每个词出现的次数
+    val countDS = wordsDS
+      .map((_, 1))
+      .updateStateByKey((seq: Seq[Int], opt: Option[Int]) => Some(seq.sum + opt.getOrElse(0)))
 
-      Some(curr + last)
-    }
-
-    //计算评价性别人数
-    val resultDS = KVDS.updateStateByKey(fun)
 
 
     //将结果写入redis
-    resultDS.foreachRDD(rdd => {
+    countDS.foreachRDD(rdd => {
       rdd.foreachPartition(iter => {
         val jedis = new Jedis(Constant.REDIS_HOST, 6379)
         iter.foreach(line => {
           val split = line._1.split("_")
           val sentimentId = split(0)
-          val gender = split(1)
+          val word = split(1)
 
-          //人数
+          //数量
           val count = line._2
 
-          val key = sentimentId + "_gender"
+          val key = sentimentId + "_word_cloud"
 
-          jedis.hset(key, gender, count.toString)
+          jedis.hset(key, word, count.toString)
         })
         jedis.close()
       })

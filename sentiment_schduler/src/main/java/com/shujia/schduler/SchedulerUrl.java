@@ -25,7 +25,7 @@ public class SchedulerUrl {
 
             //创建redis连接
 
-            Jedis jedis = new Jedis(Config.getString("redis.host"), 6379);
+            Jedis jedis = new Jedis(Config.getString("redis.host"), 6379,100000);
 
             /**
              *
