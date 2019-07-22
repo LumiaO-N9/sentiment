@@ -69,8 +69,8 @@ object ModelTrain extends SparkTool {
 
     //计算tf
     val tfModel = new HashingTF()
-      .setInputCol("feature")
       .setOutputCol("tf")
+      .setInputCol("feature")
 
     val tfDF = tfModel.transform(tokDF)
 
@@ -98,7 +98,7 @@ object ModelTrain extends SparkTool {
     val naiveBayes = new NaiveBayes()
       .setLabelCol("label")
       .setFeaturesCol("features")
-      .setModelType("multinomial")
+      .setModelType("bernoulli")
 
     //训练模型
     val nbModel = naiveBayes.fit(trainDF)
@@ -113,7 +113,9 @@ object ModelTrain extends SparkTool {
     val flagRDD = redultDF
       .rdd
       .map(row => {
+        //预测结果
         val prediction = row.getAs[Double]("prediction")
+        //原始结果
         val label = row.getAs[Double]("label")
         math.abs(prediction - label)
       })

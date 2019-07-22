@@ -11,7 +11,7 @@ object ScalaClass {
                           user_id: Long,
                           total_number: Long,
                           like_count: Long,
-                          text: String
+                          var text: String
                          )
 
 
