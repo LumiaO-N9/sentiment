@@ -3,6 +3,7 @@ package com.shujia.train
 import com.shujia.common.SparkTool
 import com.shujia.common.IK
 import org.apache.spark.ml.feature.{HashingTF, IDF, Tokenizer}
+import org.apache.spark.ml.classification.NaiveBayes
 
 object ModelTrain extends SparkTool {
 
@@ -81,12 +82,55 @@ object ModelTrain extends SparkTool {
     //计算if-idf
     val idf = new IDF()
       .setInputCol("tf")
-      .setOutputCol("tf-idf")
+      .setOutputCol("features")
 
+    //训练idf模型
     val idfModel = idf.fit(tfDF)
 
     val tfIdfDF = idfModel.transform(tfDF)
-    tfIdfDF.show(false)
+
+    //切分训练集和测试集
+    val splitDF = tfIdfDF.randomSplit(Array(0.8, 0.2))
+    val trainDF = splitDF(0)
+    val testDF = splitDF(1)
+
+    //构建贝叶斯算法
+    val naiveBayes = new NaiveBayes()
+      .setLabelCol("label")
+      .setFeaturesCol("features")
+      .setModelType("multinomial")
+
+    //训练模型
+    val nbModel = naiveBayes.fit(trainDF)
+
+    //通过测试集进行测试
+    val redultDF = nbModel.transform(testDF)
+    redultDF.cache()
+
+    redultDF.show(false)
+
+    //计算模型准确率
+    val flagRDD = redultDF
+      .rdd
+      .map(row => {
+        val prediction = row.getAs[Double]("prediction")
+        val label = row.getAs[Double]("label")
+        math.abs(prediction - label)
+      })
+
+    //模型准确率
+    val testaccuracy = 1 - flagRDD.reduce(_ + _) / flagRDD.count().toDouble
+
+    println("模型准确率：" + testaccuracy)
+    //保存模型
+    if (testaccuracy > 0.8) {
+      //保存模型
+      idfModel.write.overwrite().save("model/idfModel")
+      nbModel.write.overwrite().save("model/nbModel")
+
+      //保存特征数量
+      println(tfModel.getNumFeatures)
+    }
 
 
   }
