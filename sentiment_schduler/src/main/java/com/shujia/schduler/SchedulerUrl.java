@@ -49,7 +49,7 @@ public class SchedulerUrl {
                 for (String word : words.split(",")) {
 
                     //获取多个页面数据
-                    for (int page = 0; page < 2; page++) {
+                    for (int page = 0; page < 10; page++) {
                         //构建url
                         String url = baseUrl
                                 .replace("$1", URLEncoder.encode(word))
@@ -71,7 +71,7 @@ public class SchedulerUrl {
 
             jedis.close();
             //没5分钟执行一次
-            Thread.sleep(5 * 60 * 1000);
+            Thread.sleep(60 * 1000);
         }
 
 

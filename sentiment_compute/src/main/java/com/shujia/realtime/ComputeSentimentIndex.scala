@@ -1,11 +1,15 @@
 package com.shujia.realtime
 
+import java.text.SimpleDateFormat
+
 import com.google.gson.Gson
 import com.shujia.Constant
 import com.shujia.bean.ScalaClass.WeiboComment
 import com.shujia.common.{IK, SparkTool}
 import com.shujia.realtime.ComputeWordCloud.sc
 import kafka.serializer.StringDecoder
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.hbase.client.HConnectionManager
 import org.apache.spark.ml.classification.NaiveBayesModel
 import org.apache.spark.ml.feature.{HashingTF, IDFModel, Tokenizer}
 import org.apache.spark.storage.StorageLevel
@@ -14,6 +18,8 @@ import org.apache.spark.streaming.kafka.KafkaUtils
 import org.apache.spark.streaming.{Durations, StreamingContext}
 import org.apache.spark.mllib.linalg.Vector
 import redis.clients.jedis.Jedis
+import org.apache.hadoop.hbase.client.Put
+import org.apache.hadoop.hbase.util.Bytes
 
 object ComputeSentimentIndex extends SparkTool {
   /**
@@ -32,7 +38,7 @@ object ComputeSentimentIndex extends SparkTool {
 
     val params = Map(
       "zookeeper.connect" -> Constant.KAFKA_ZOOKEEPER_CONNECT,
-      "group.id" -> "asdasdd",
+      "group.id" -> "asdasdaasddd",
       "auto.offset.reset" -> "smallest",
       "zookeeper.connection.timeout.ms" -> "10000"
     )
@@ -55,7 +61,7 @@ object ComputeSentimentIndex extends SparkTool {
 
 
     //情感打标
-    val flagDS = commentDSKV.transform(rdd => {
+    var flagDS = commentDSKV.transform(rdd => {
       //分词
       val wordDF = rdd.map(comment => {
         var text = comment.text
@@ -103,6 +109,7 @@ object ComputeSentimentIndex extends SparkTool {
       rsultDF.rdd
     })
 
+    flagDS = flagDS.cache()
 
     //统计舆情
     val resultDS = flagDS.map(row => {
@@ -127,7 +134,7 @@ object ComputeSentimentIndex extends SparkTool {
 
       (key, 1)
     })
-      //通过舆情结果
+      //统计舆情结果
       .updateStateByKey((seq: Seq[Int], opt: Option[Int]) => Some(seq.sum + opt.getOrElse(0)))
       .map(t => {
         val split = t._1.split("_")
@@ -153,20 +160,86 @@ object ComputeSentimentIndex extends SparkTool {
     //将结果写入redis
     resultDS.foreachRDD(rdd => {
       rdd.foreachPartition(iter => {
-        val jedis = new Jedis(Constant.REDIS_HOST, 6379)
-        iter.foreach(line => {
-          val split = line._1.split("_")
+
+        //创建hbase连接
+        val conf: Configuration = new Configuration
+        conf.set("hbase.zookeeper.quorum", Constant.HBASE_ZOOKEEPER_CONNECT)
+        val connection = HConnectionManager.createConnection(conf)
+        //create 'comment_sentiment' ,{NAME => 'info' ,VERSIONS => 100}
+        val sentiment = connection.getTable("comment_sentiment")
+
+        iter.foreach(t => {
+          val split = t._1.split("_")
           val sentimentId = split(0)
+          //以时间作为版本号
           val time = split(1)
+          val format = new SimpleDateFormat("yyyy-MM-dd HH")
+          val ts = format.parse(time).getTime
 
-          val value = line._2
+          val put = new Put(sentimentId.getBytes())
 
-          val key = sentimentId + "_sentiment"
+          put.add("info".getBytes(), "real".getBytes(), ts, t._2.getBytes())
 
-          jedis.hset(key, time, value)
+          sentiment.put(put)
         })
-        jedis.close()
+
+        connection.close()
       })
+    })
+
+
+    /**
+      * 将打好标记的数据写入hbase 供下一次模型更新使用
+      *
+      */
+    flagDS.foreachRDD(rdd => {
+
+      rdd.foreachPartition(iter => {
+        //创建hbase连接
+        val conf: Configuration = new Configuration
+        conf.set("hbase.zookeeper.quorum", Constant.HBASE_ZOOKEEPER_CONNECT)
+        val connection = HConnectionManager.createConnection(conf)
+        //create 'comment','info'
+        val comment = connection.getTable("comment")
+
+        iter.foreach(row => {
+          val comment_id = row.getAs[String]("comment_id")
+          val article_id = row.getAs[String]("article_id")
+          val created_at = row.getAs[String]("created_at")
+          val user_name = row.getAs[String]("user_name")
+          val user_id = row.getAs[Long]("user_id")
+          val total_number = row.getAs[Long]("total_number")
+          val like_count = row.getAs[Long]("like_count")
+          val text = row.getAs[String]("text")
+          //预测结果
+          var prediction = row.getAs[Double]("prediction")
+
+          //正负标记的概率
+          val probability = row.getAs[Vector]("probability")
+
+          //计算两个概率的差值
+          val p = math.abs(probability(0) - probability(1))
+
+          val put = new Put(comment_id.getBytes())
+
+          put.add("info".getBytes(), "created_at".getBytes(), created_at.getBytes())
+          put.add("info".getBytes(), "article_id".getBytes(), article_id.getBytes())
+          put.add("info".getBytes(), "user_name".getBytes(), user_name.getBytes())
+          put.add("info".getBytes(), "user_id".getBytes(), Bytes.toBytes(user_id))
+          put.add("info".getBytes(), "total_number".getBytes(), Bytes.toBytes(total_number))
+          put.add("info".getBytes(), "like_count".getBytes(), Bytes.toBytes(like_count))
+          put.add("info".getBytes(), "text".getBytes(), text.getBytes())
+          put.add("info".getBytes(), "prediction".getBytes(), Bytes.toBytes(prediction))
+          put.add("info".getBytes(), "p".getBytes(), Bytes.toBytes(p))
+
+          comment.put(put)
+
+        })
+
+        connection.close()
+
+      })
+
     })
 
 

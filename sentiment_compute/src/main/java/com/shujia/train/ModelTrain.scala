@@ -2,8 +2,13 @@ package com.shujia.train
 
 import com.shujia.common.SparkTool
 import com.shujia.common.IK
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.hbase.client.Result
+import org.apache.hadoop.hbase.io.ImmutableBytesWritable
+import org.apache.hadoop.hbase.mapreduce.TableInputFormat
 import org.apache.spark.ml.feature.{HashingTF, IDF, Tokenizer}
 import org.apache.spark.ml.classification.NaiveBayes
+import org.apache.hadoop.hbase.util.Bytes
 
 object ModelTrain extends SparkTool {
 
@@ -49,6 +54,35 @@ object ModelTrain extends SparkTool {
     })
       .filter(_._2.length > 1)
 
+
+    /**
+      * 读取hbase数据，更新模型
+      *
+      */
+    val config: Configuration = new Configuration
+    config.set("hbase.zookeeper.quorum", "node1:2181,node2:2181,node3:2181")
+    config.set("hbase.mapreduce.inputtable", "comment") //指定表名
+
+    val rdd = sc.newAPIHadoopRDD(
+      config,
+      classOf[TableInputFormat], //格式化类型
+      classOf[ImmutableBytesWritable], //数据key的类型
+      classOf[Result] //value的类型
+    )
+
+    //读取hbase 已经倍打标的数据
+    val hbaseRDD = rdd
+      .map(_._2)
+      .map(result => {
+        val text = Bytes.toString(result.getValue("info".getBytes(), "text".getBytes()))
+        val prediction = Bytes.toDouble(result.getValue("info".getBytes(), "prediction".getBytes()))
+        val p = Bytes.toDouble(result.getValue("info".getBytes(), "p".getBytes()))
+        (prediction, text, p)
+      }).filter(_._3 > 0.3)
+      .map(t => (t._1, t._2))
+
+
+
     //3、将数据转换成向量，加上if-idf
 
     val s = sql
@@ -57,6 +91,7 @@ object ModelTrain extends SparkTool {
     //将RDD转换成DF
     val srcDF = wordsRDD
       .map(t => (t._1, t._2.mkString(" ")))
+      .union(hbaseRDD) //合并hbasess数据
       .toDF("label", "text")
 
 
@@ -98,7 +133,7 @@ object ModelTrain extends SparkTool {
     val naiveBayes = new NaiveBayes()
       .setLabelCol("label")
       .setFeaturesCol("features")
-      .setModelType("bernoulli")
+      .setModelType("multinomial")
 
     //训练模型
     val nbModel = naiveBayes.fit(trainDF)
