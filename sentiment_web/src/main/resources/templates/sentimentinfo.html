@@ -56,13 +56,85 @@
 <div id="main1" style="height:400px"></div>
 <div id="main2" style="height:400px"></div>
 
+
+<script type="text/javascript">
+
+    var href = location.href;
+    eval("var " + href.substring(href.indexOf("?") + 1) + ";");
+
+
+
+    // 基于准备好的dom，初始化echarts图表
+    var myChart1 = echarts.init(document.getElementById('main'));
+    // 为echarts对象加载数据
+    $.get("http://localhost:8080/getRealTimeSentiment?id="+id).done(function (data) {
+        myChart1.setOption({
+            title: {
+                text: '舆情走势'
+            },
+            tooltip: {
+                trigger: 'axis'
+            },
+            legend: {
+                data: ['正面', '负面', '中性']
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '3%',
+                containLabel: true
+            },
+            toolbox: {
+                feature: {
+                    saveAsImage: {}
+                }
+            },
+            xAxis: {
+                type: 'category',
+                data: data.x,
+                splitLine: {
+                    show: false
+                }
+            },
+            yAxis: {
+                type: 'value',
+                boundaryGap: [0, '100%'],
+                splitLine: {
+                    show: false
+                }
+            },
+            series: [
+                {
+                    name: '正面',
+                    type: 'line',
+                    data: data.y3
+                },
+                {
+                    name: '负面',
+                    type: 'line',
+                    data: data.y1
+                },
+                {
+                    name: '中性',
+                    type: 'line',
+                    data: data.y2
+                }
+            ]
+        });
+    })
+
+
+
+</script>
+
+
 <script type="text/javascript">
     var href = location.href;
     eval("var " + href.substring(href.indexOf("?") + 1) + ";");
 
 
     // 基于准备好的dom，初始化echarts图表
-    var myChart = echarts.init(document.getElementById('main'));
+    var myChart = echarts.init(document.getElementById('main1'));
     // 为echarts对象加载数据
     $.get("http://localhost:8080/getGenderCount?id=" + id).done(function (data) {
         myChart.setOption({
@@ -97,7 +169,7 @@
 <script type="text/javascript">
     var href = location.href;
     eval("var " + href.substring(href.indexOf("?") + 1) + ";");
-    var chart = echarts.init(document.getElementById('main1'));
+    var chart = echarts.init(document.getElementById('main2'));
 
     $.get("http://localhost:8080/getWordCloud?id="+id).done(function (data) {
         chart.setOption({
@@ -132,12 +204,7 @@
     })
 
 
-
-
-
-
 </script>
-
 
 <div class="panel">
     <div class="panel-body" style="padding-bottom: 1px;">
@@ -244,6 +311,8 @@
     function operateFormatter(value, row, index) {
         return '<button  type="button" onClick="showConsumeRecord('+id+')"  class="btn btn-xs btn-primary" data-toggle="modal" data-target="#consumeModal">查看</button>';
     }
+
+
 
 
 

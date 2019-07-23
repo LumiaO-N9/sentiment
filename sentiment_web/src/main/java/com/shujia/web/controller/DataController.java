@@ -2,10 +2,12 @@ package com.shujia.web.controller;
 
 import com.shujia.common.Config;
 import com.shujia.common.JDBCUtil;
-import com.shujia.web.bean.GenderCount;
-import com.shujia.web.bean.PageHelper;
-import com.shujia.web.bean.Sentiment;
-import com.shujia.web.bean.Word;
+import com.shujia.web.bean.*;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
+import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.elasticsearch.action.count.CountRequestBuilder;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
@@ -26,11 +28,12 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.view.RedirectView;
 import redis.clients.jedis.Jedis;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.sql.Date;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 @RestController
 public class DataController {
@@ -162,6 +165,76 @@ public class DataController {
     }
 
 
+    /**
+     * 获取舆情走势
+     */
+        @RequestMapping("/getRealTimeSentiment")
+        public Real getRealTimeSentiment(String id) {
+
+        Configuration conf = new Configuration();
+        conf.set("hbase.zookeeper.quorum", "node1:2181,node2:2181,node3:2181");
+        Real real = new Real();
+        try {
+            //丽娜姐regionserver,  负责表的增删改查
+            HConnection connection = HConnectionManager.createConnection(conf);
+
+            HTableInterface table = connection.getTable("comment_sentiment");
+
+            Get get = new Get(id.getBytes());
+            get.addFamily("info".getBytes());
+            //如果不指定版本号，默认只查询一个版本的数据
+            get.setMaxVersions(10);
+
+
+            ArrayList<String> xlist = new ArrayList<>();
+            ArrayList<Integer> y1list = new ArrayList<Integer>();
+            ArrayList<Integer> y2list = new ArrayList<Integer>();
+            ArrayList<Integer> y3list = new ArrayList<Integer>();
+
+            real.setX(xlist);
+            real.setY1(y1list);
+            real.setY2(y2list);
+            real.setY3(y3list);
+
+            Result result = table.get(get);
+            List<Cell> columnCells = result.getColumnCells("info".getBytes(), "real".getBytes());
+
+            for (Cell columnCell : columnCells) {
+                long timestamp = columnCell.getTimestamp();
+                Date date = new Date(timestamp);
+                SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH");
+                String x = format.format(date);
+                xlist.add(x);
+
+                String value = Bytes.toString(CellUtil.cloneValue(columnCell));
+
+                HashMap<String, Integer> map = new HashMap<>();
+                map.put("0.0", 0);
+                map.put("1.0", 0);
+                map.put("2.0", 0);
+
+                for (String kv : value.split("\\|")) {
+                    String k = kv.split(":")[0];
+                    Integer v = Integer.parseInt(kv.split(":")[1]);
+                    map.put(k, v);
+                }
+                y1list.add(map.get("0.0"));
+                y2list.add(map.get("1.0"));
+                y3list.add(map.get("2.0"));
+
+            }
+
+            Collections.reverse(real.getX());
+            Collections.reverse(real.getY1());
+            Collections.reverse(real.getY2());
+            Collections.reverse(real.getY3());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return real;
+
+    }
 
 
 }
