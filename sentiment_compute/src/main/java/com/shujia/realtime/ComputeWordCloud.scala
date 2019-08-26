@@ -30,7 +30,7 @@ object ComputeWordCloud extends SparkTool {
 
     val params = Map(
       "zookeeper.connect" -> Constant.KAFKA_ZOOKEEPER_CONNECT,
-      "group.id" -> "asdadasdd",
+      "group.id" -> "asdasdsa",
       "auto.offset.reset" -> "smallest",
       "zookeeper.connection.timeout.ms" -> "10000"
     )
