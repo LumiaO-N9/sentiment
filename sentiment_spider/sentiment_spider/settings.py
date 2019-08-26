@@ -15,10 +15,10 @@ SPIDER_MODULES = ['sentiment_spider.spiders']
 NEWSPIDER_MODULE = 'sentiment_spider.spiders'
 
 # kafka地址
-BOOTSTRAP_SERVERS = "47.102.118.141:9092,47.102.105.40:9092"
+BOOTSTRAP_SERVERS = "node1:9092,node2:9092,node3:9092"
 
 # redis连接地址
-REDIS_HOST = "47.102.118.141"
+REDIS_HOST = "node1"
 REDIS_PORT = "6379"
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 # USER_AGENT = 'sentimentspider (+http://www.yourdomain.com)'

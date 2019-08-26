@@ -7,6 +7,10 @@ import org.wltea.analyzer.core.IKSegmenter
 import scala.collection.mutable.ListBuffer
 
 object IK {
+  def main(args: Array[String]): Unit = {
+    println("asd")
+
+  }
 
   /**
     * ik分词器

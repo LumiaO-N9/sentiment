@@ -5,7 +5,7 @@ from sentiment_spider.items import WeiboCommentItem
 from scrapy_redis.spiders import RedisSpider
 
 import time
-from scrapy.conf import settings
+from sentiment_spider.settings import *
 import re
 import random
 import redis
@@ -19,7 +19,7 @@ class weibo_comment_spider(RedisSpider):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # redis 连接池
-        self.pool = redis.ConnectionPool(host=settings.get("REDIS_HOST"), port=settings.get("REDIS_PORT"),
+        self.pool = redis.ConnectionPool(host=REDIS_HOST, port=REDIS_PORT,
                                          decode_responses=True)  # host是redis主机，需要redis服务端和客户端都起着 redis默认端口是6379
 
     def start_requests(self):
@@ -40,8 +40,8 @@ class weibo_comment_spider(RedisSpider):
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36"
         }
         formdata = {
-            'username': settings.get("WEIBO_LOGIN_USERNAME"),
-            "password": settings.get("WEIBO_LOGIN_PASSWORD"),
+            'username': WEIBO_LOGIN_USERNAME,
+            "password": WEIBO_LOGIN_PASSWORD,
         }
         # 登录
         yield scrapy.FormRequest(url="https://passport.weibo.cn/sso/login", formdata=formdata,

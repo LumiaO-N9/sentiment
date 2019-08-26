@@ -7,7 +7,7 @@
 from sentiment_spider.items import WeiBoUserItem, WeiboCommentItem, ArticleItem, CommentUrlItem
 import json
 from kafka import KafkaProducer
-from scrapy.conf import settings
+from sentiment_spider.settings import *
 import redis
 import time
 
@@ -19,10 +19,10 @@ class SentimentspiderPipeline(object):
 
         # 初始化kafka连接
         # settings.get("BOOTSTRAP_SERVERS")  获取settings配置信息
-        self.producer = KafkaProducer(bootstrap_servers=settings.get("BOOTSTRAP_SERVERS"))
+        self.producer = KafkaProducer(bootstrap_servers=BOOTSTRAP_SERVERS)
 
         # redis 连接池
-        self.pool = redis.ConnectionPool(host=settings.get("REDIS_HOST"), port=settings.get("REDIS_PORT"),
+        self.pool = redis.ConnectionPool(host=REDIS_HOST, port=REDIS_PORT,
                                          decode_responses=True)  # host是redis主机，需要redis服务端和客户端都起着 redis默认端口是6379
 
     # 数据处理方法  将数据打入kafka或者写入redis
@@ -79,6 +79,5 @@ class SentimentspiderPipeline(object):
             client = redis.Redis(connection_pool=self.pool, db=0)
             client.lpush("weibo_comment_spider:start_urls", item["url"])
 
-            #将评价url和舆情id写入redis
-            client.hset("url_flag",item["url"],item["sentiment_id"])
-
+            # 将评价url和舆情id写入redis
+            client.hset("url_flag", item["url"], item["sentiment_id"])

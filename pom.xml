@@ -7,6 +7,7 @@
     <groupId>com.shujia</groupId>
     <artifactId>sentiment</artifactId>
     <version>1.0</version>
+    <packaging>pom</packaging>
 
 
 </project>

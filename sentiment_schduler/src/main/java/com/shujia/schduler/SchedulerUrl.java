@@ -25,7 +25,7 @@ public class SchedulerUrl {
 
             //创建redis连接
 
-            Jedis jedis = new Jedis(Config.getString("redis.host"), 6379,100000);
+            Jedis jedis = new Jedis(Config.getString("redis.host"), 6379, 100000);
 
             /**
              *
@@ -71,7 +71,7 @@ public class SchedulerUrl {
 
             jedis.close();
             //没5分钟执行一次
-            Thread.sleep(60 * 1000);
+            Thread.sleep(5 * 60 * 1000);
         }
 
 

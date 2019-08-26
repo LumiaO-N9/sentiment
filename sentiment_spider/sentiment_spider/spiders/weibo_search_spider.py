@@ -4,7 +4,7 @@ import re
 from sentiment_spider.items import ArticleItem, CommentUrlItem, WeiBoUserItem
 from scrapy_redis.spiders import RedisSpider
 import redis
-from scrapy.conf import settings
+from sentiment_spider.settings import *
 
 # url 取redis中获取   key  = weibo_search_spider:start_urls
 class weibo_search_spider(RedisSpider):
@@ -13,7 +13,7 @@ class weibo_search_spider(RedisSpider):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # redis 连接池
-        self.pool = redis.ConnectionPool(host=settings.get("REDIS_HOST"), port=settings.get("REDIS_PORT"),
+        self.pool = redis.ConnectionPool(host=REDIS_HOST, port=REDIS_PORT,
                                          decode_responses=True)  # host是redis主机，需要redis服务端和客户端都起着 redis默认端口是6379
 
     # 回调函数
