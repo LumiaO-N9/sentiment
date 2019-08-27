@@ -10,4 +10,11 @@
     <packaging>pom</packaging>
 
 
+    <modules>
+        <module>sentiment_common</module>
+        <module>sentiment_schduler</module>
+        <module>sentiment_compute</module>
+
+    </modules>
+
 </project>

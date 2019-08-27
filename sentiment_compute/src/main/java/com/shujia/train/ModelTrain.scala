@@ -19,7 +19,7 @@ object ModelTrain extends SparkTool {
     *
     * 1、对数据进行处理，去除脏数据
     * 2、对评论进行分词
-    * 3、将数据转换成向量，加上if-idf
+    * 3、将数据转换成向量，加上if-idf（评价一个词相对于文档的重要程度）
     * 4、将训练集带入贝叶斯算法  得到模型
     * 5、将模型保存到hdfs
     *
@@ -48,6 +48,7 @@ object ModelTrain extends SparkTool {
       .filter(t => !t._2.contains("转发微博"))
       .filter(t => t._2.trim.length > 1)
 
+
     //对数据进行分词
     val wordsRDD = filterRDD.map(t => {
       (t._1.toDouble, IK.fit(t._2))
@@ -59,7 +60,7 @@ object ModelTrain extends SparkTool {
       * 读取hbase数据，更新模型
       *
       */
-    val config: Configuration = new Configuration
+    /*val config: Configuration = new Configuration
     config.set("hbase.zookeeper.quorum", "node1:2181,node2:2181,node3:2181")
     config.set("hbase.mapreduce.inputtable", "comment") //指定表名
 
@@ -80,7 +81,7 @@ object ModelTrain extends SparkTool {
         (prediction, text, p)
       }).filter(_._3 > 0.3)
       .map(t => (t._1, t._2))
-
+*/
 
 
     //3、将数据转换成向量，加上if-idf
@@ -91,7 +92,7 @@ object ModelTrain extends SparkTool {
     //将RDD转换成DF
     val srcDF = wordsRDD
       .map(t => (t._1, t._2.mkString(" ")))
-      .union(hbaseRDD) //合并hbasess数据
+      /*//.union(hbaseRDD) //合并hbasess数据*/
       .toDF("label", "text")
 
 
@@ -102,15 +103,18 @@ object ModelTrain extends SparkTool {
 
     val tokDF = tok.transform(srcDF)
 
-    //计算tf
+
+    //计算tf  词频
     val tfModel = new HashingTF()
-      .setOutputCol("tf")
+      .setNumFeatures(262144) //词典长度  尽量放下所有词
       .setInputCol("feature")
+      .setOutputCol("tf")
 
     val tfDF = tfModel.transform(tokDF)
 
 
-    tfDF.cache()
+
+
 
     //计算idf
 
@@ -124,50 +128,54 @@ object ModelTrain extends SparkTool {
 
     val tfIdfDF = idfModel.transform(tfDF)
 
-    //切分训练集和测试集
-    val splitDF = tfIdfDF.randomSplit(Array(0.8, 0.2))
-    val trainDF = splitDF(0)
-    val testDF = splitDF(1)
 
-    //构建贝叶斯算法
-    val naiveBayes = new NaiveBayes()
-      .setLabelCol("label")
-      .setFeaturesCol("features")
-      .setModelType("multinomial")
+    tfIdfDF.show(100, false)
+    /*
+        //切分训练集和测试集
+        val splitDF = tfIdfDF.randomSplit(Array(0.8, 0.2))
+        val trainDF = splitDF(0)
+        val testDF = splitDF(1)
 
-    //训练模型
-    val nbModel = naiveBayes.fit(trainDF)
+        //构建贝叶斯算法
+        val naiveBayes = new NaiveBayes()
+          .setLabelCol("label")
+          .setFeaturesCol("features")
+          .setModelType("multinomial")
 
-    //通过测试集进行测试
-    val redultDF = nbModel.transform(testDF)
-    redultDF.cache()
+        //训练模型
+        val nbModel = naiveBayes.fit(trainDF)
 
-    redultDF.show(false)
+        //通过测试集进行测试
+        val redultDF = nbModel.transform(testDF)
+        redultDF.cache()
 
-    //计算模型准确率
-    val flagRDD = redultDF
-      .rdd
-      .map(row => {
-        //预测结果
-        val prediction = row.getAs[Double]("prediction")
-        //原始结果
-        val label = row.getAs[Double]("label")
-        math.abs(prediction - label)
-      })
+        redultDF.show(false)
 
-    //模型准确率
-    val testaccuracy = 1 - flagRDD.reduce(_ + _) / flagRDD.count().toDouble
+        //计算模型准确率
+        val flagRDD = redultDF
+          .rdd
+          .map(row => {
+            //预测结果
+            val prediction = row.getAs[Double]("prediction")
+            //原始结果
+            val label = row.getAs[Double]("label")
+            math.abs(prediction - label)
+          })
 
-    println("模型准确率：" + testaccuracy)
-    //保存模型
-    if (testaccuracy > 0.8) {
-      //保存模型
-      idfModel.write.overwrite().save("model/idfModel")
-      nbModel.write.overwrite().save("model/nbModel")
+        //模型准确率
+        val testaccuracy = 1 - flagRDD.reduce(_ + _) / flagRDD.count().toDouble
 
-      //保存特征数量
-      println(tfModel.getNumFeatures)
-    }
+        println("模型准确率：" + testaccuracy)
+        //保存模型
+        if (testaccuracy > 0.8) {
+          //保存模型
+          idfModel.write.overwrite().save("model/idfModel")
+          nbModel.write.overwrite().save("model/nbModel")
+
+          //保存特征数量
+          println(tfModel.getNumFeatures)
+        }
+    */
 
 
   }
