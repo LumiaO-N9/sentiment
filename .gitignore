@@ -484,3 +484,7 @@ model/idfModel/data/.part-r-00000-2b15d95f-2ed6-4d94-853e-452f7093ab72.gz.parque
 model/idfModel/data/part-r-00000-2b15d95f-2ed6-4d94-853e-452f7093ab72.gz.parquet
 model/nbModel/data/.part-r-00000-945e717b-3db0-4e46-b50c-9abb80f64333.gz.parquet.crc
 model/nbModel/data/part-r-00000-945e717b-3db0-4e46-b50c-9abb80f64333.gz.parquet
+/sentiment.iml
+/sentiment_scheduler/sentiment_scheduler.iml
+/sentiment_compute/sentiment_compute.iml
+/sentiment_common/sentiment_common.iml
