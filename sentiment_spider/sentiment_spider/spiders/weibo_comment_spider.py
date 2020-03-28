@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 import scrapy
 import json
-from sentiment_spider.items import WeiboCommentItem
+from sentiment_spider.items import WeiboCommentItem, WeiBoUserItem
 from scrapy_redis.spiders import RedisSpider
 
 import time
@@ -9,6 +9,10 @@ from sentiment_spider.settings import *
 import re
 import random
 import redis
+
+from fake_useragent import UserAgent
+
+ua = UserAgent()
 
 
 # url 从redis  中获取
@@ -27,7 +31,7 @@ class weibo_comment_spider(RedisSpider):
             "Content-Type": "application/x-www-form-urlencoded",
             "Origin": "https://passport.weibo.cn",
             "Referer": "https://passport.weibo.cn/signin/login?entry=mweibo&res=wel&wm=3349&r=https%3A%2F%2Fm.weibo.cn%2Fdetail%2F4357286229257109",
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36"
+            "User-Agent": "Mozilla/5.0 (iPod; U; CPU like Mac OS X; en) AppleWebKit/420.1 (KHTML, like Gecko) Version/3.0 Mobile/3A101a Safari/419.3"
         }
         # 获取登录页面
         yield scrapy.Request(url="https://passport.weibo.cn/signin/login", headers=head, callback=self.login)
@@ -37,7 +41,7 @@ class weibo_comment_spider(RedisSpider):
             "Content-Type": "application/x-www-form-urlencoded",
             "Origin": "https://passport.weibo.cn",
             "Referer": "https://passport.weibo.cn/signin/login?entry=mweibo&res=wel&wm=3349&r=https%3A%2F%2Fm.weibo.cn%2Fdetail%2F4357286229257109",
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36"
+            "User-Agent": "Mozilla/5.0 (iPod; U; CPU like Mac OS X; en) AppleWebKit/420.1 (KHTML, like Gecko) Version/3.0 Mobile/3A101a Safari/419.3"
         }
         formdata = {
             'username': WEIBO_LOGIN_USERNAME,
@@ -58,13 +62,15 @@ class weibo_comment_spider(RedisSpider):
         url = response.request.url
         client = redis.Redis(connection_pool=self.pool, db=0)
         # 从redis获取舆情id
-        sentiment_id = int(client.hget("url_flag", url))
-
+        try:
+            sentiment_id = int(client.hget("url_flag", url))
+        except TypeError:
+            print("Cann't get sentiment_id from " + url)
         head = {
             "Content-Type": "application/x-www-form-urlencoded",
             "Origin": "https://passport.weibo.cn",
             "Referer": "https://passport.weibo.cn/signin/login?entry=mweibo&res=wel&wm=3349&r=https%3A%2F%2Fm.weibo.cn%2Fdetail%2F4357286229257109",
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36"
+            "User-Agent": ua.random
         }
         try:
             id_re = re.compile("\?id=(\w*)&")
@@ -108,6 +114,22 @@ class weibo_comment_spider(RedisSpider):
                     item["text"] = text
 
                     yield item
+
+                    # ######################################微博用户信息################################################
+                    userItem = WeiBoUserItem()
+
+                    user = data["user"]
+
+                    userItem["sentiment_id"] = sentiment_id
+                    userItem["description"] = user["description"]  # 描述
+                    userItem["id"] = user["id"]  # 用户id
+                    userItem["screen_name"] = user["screen_name"]  # 用户名
+                    userItem["follow_count"] = user["follow_count"]  # 关注度
+                    userItem["followers_count"] = user["followers_count"]  # 粉丝数
+                    userItem["gender"] = user["gender"]  # 性别
+
+                    # 发送给pipelines
+                    yield userItem
 
                 # 构建下一页请求地址
                 url = "https://m.weibo.cn/comments/hotflow?id=%s&mid=%s&max_id=%s&max_id_type=%s"

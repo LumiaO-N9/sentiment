@@ -14,9 +14,9 @@ class SentimentSpiderItem(scrapy.Item):
     pass
 
 
-
 # 微博用户自定义对象
 class WeiBoUserItem(scrapy.Item):
+    sentiment_id = scrapy.Field()  # 舆情ID
     description = scrapy.Field()  # 描述
     id = scrapy.Field()  # 用户id
     screen_name = scrapy.Field()  # 用户名
@@ -38,11 +38,12 @@ class ArticleItem(scrapy.Item):
     user_id = scrapy.Field()  # 用户id
     sentiment_id = scrapy.Field()  # 舆情编号
     attitudes_count = scrapy.Field()  # 点赞
-    created_at = scrapy.Field()  # 时间
+    article_created_at = scrapy.Field()  # 时间
     comments_count = scrapy.Field()  # 评论数
     reposts_count = scrapy.Field()  # 转发
     text = scrapy.Field()  # 微博内容
     page_url = scrapy.Field()  # 微博地址
+    followers_count = scrapy.Field()  # 博主粉丝数
 
 
 # 评价内容自定义对象

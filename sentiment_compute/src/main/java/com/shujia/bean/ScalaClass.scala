@@ -17,6 +17,7 @@ object ScalaClass {
 
   //微博用户
   case class WeiBoUser(
+                        sentiment_id: String,
                         description: String,
                         id: Long,
                         screen_name: String,
@@ -31,7 +32,7 @@ object ScalaClass {
                            user_id: Long,
                            sentiment_id: Long,
                            attitudes_count: Long,
-                           created_at: String,
+                           article_created_at: String,
                            comments_count: Long,
                            reposts_count: Long,
                            text: String,

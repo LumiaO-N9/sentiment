@@ -8,17 +8,22 @@ import scala.collection.mutable.ListBuffer
 
 object IK {
   def main(args: Array[String]): Unit = {
-    println("asd")
-
+    val text = "张三峰说的确实在理"
+    println("待切分字符串： " + text)
+    println("Smart Mode")
+    println(IK.fit(text).mkString("|"))
+    println("no Smart Mode")
+    println(IK.fit(text, false).mkString("|"))
   }
 
   /**
-    * ik分词器
-    * @return
-    */
-  def fit(text: String): List[String] = {
+   * ik分词器
+   *
+   * @return
+   */
+  def fit(text: String, smartMode: Boolean = true): List[String] = {
     val sr = new StringReader(text)
-    val ik = new IKSegmenter(sr, true)
+    val ik = new IKSegmenter(sr, smartMode)
 
     val lf = new ListBuffer[String]
 

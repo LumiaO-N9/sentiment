@@ -80,22 +80,24 @@
             <version>2012_u6</version>
         </dependency>
 
-
         <dependency>
             <groupId>org.elasticsearch</groupId>
-            <artifactId>elasticsearch</artifactId>
-            <version>2.2.1</version>
+            <artifactId>elasticsearch-spark-13_2.10</artifactId>
+            <version>6.8.6</version>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/org.elasticsearch/elasticsearch-hadoop -->
+
         <dependency>
-            <groupId>org.elasticsearch</groupId>
-            <artifactId>elasticsearch-hadoop</artifactId>
-            <version>2.2.0</version>
+            <groupId>com.sendgrid</groupId>
+            <artifactId>sendgrid-java</artifactId>
+            <version>4.0.1</version>
         </dependency>
 
-
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>5.1.36</version>
+        </dependency>
     </dependencies>
-
 
 
     <build>

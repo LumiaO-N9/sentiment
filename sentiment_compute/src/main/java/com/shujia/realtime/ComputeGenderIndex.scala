@@ -17,12 +17,12 @@ import com.shujia.Constant
 object ComputeGenderIndex extends SparkTool {
 
   /**
-    * 计算每个舆情评价人性别占比
-    *
-    */
+   * 计算每个舆情评价人性别占比
+   *
+   */
   /**
-    * 在run方法里面编写spark业务逻辑
-    */
+   * 在run方法里面编写spark业务逻辑
+   */
   override def run(args: Array[String]): Unit = {
 
 
@@ -33,7 +33,7 @@ object ComputeGenderIndex extends SparkTool {
 
     val params = Map(
       "zookeeper.connect" -> Constant.KAFKA_ZOOKEEPER_CONNECT,
-      "group.id" -> "asdasaaasdsasd",
+      "group.id" -> "success6",
       "auto.offset.reset" -> "smallest",
       "zookeeper.connection.timeout.ms" -> "10000"
     )
@@ -43,7 +43,7 @@ object ComputeGenderIndex extends SparkTool {
     val commentDS: ReceiverInputDStream[(String, String)] = KafkaUtils.createStream[String, String, StringDecoder, StringDecoder](
       ssc, params, topics, StorageLevel.MEMORY_AND_DISK_SER
     )
-
+    //    commentDS.print(10)
     val commentDSKV = commentDS.map(line => {
       val gson = new Gson()
       //将json字符串转换成自定义对象
@@ -68,7 +68,8 @@ object ComputeGenderIndex extends SparkTool {
           val sentiment_id = comment.sentiment_id
 
           //通过用户id查询用户性别
-          val get = new Get(Bytes.toBytes(userId))
+          val id = userId + "_" + sentiment_id
+          val get = new Get(Bytes.toBytes(id))
           //指定需要查询的列
           get.addColumn("info".getBytes(), "gender".getBytes())
           val restltSet = WeiBoUser.get(get)
@@ -127,9 +128,9 @@ object ComputeGenderIndex extends SparkTool {
   }
 
   /**
-    * 初始化spark配置
-    *  conf.setMaster("local")
-    */
+   * 初始化spark配置
+   *  conf.setMaster("local")
+   */
   override def init(): Unit = {
     conf.setMaster("local[4]")
   }

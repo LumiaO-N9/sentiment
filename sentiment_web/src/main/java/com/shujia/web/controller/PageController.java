@@ -12,10 +12,13 @@ public class PageController {
      * 获取页面
      * 以do结尾  ，自动返回jsp 下面的页面
      */
-    @RequestMapping(value = "/{pagename}.do",   method = RequestMethod.GET)
+    @RequestMapping(value = "/{pagename}.do", method = RequestMethod.GET)
     public String page(@PathVariable("pagename") String name) {
         return name;
     }
 
-
+    @RequestMapping("/test")
+    public String test() {
+        return "test";
+    }
 }

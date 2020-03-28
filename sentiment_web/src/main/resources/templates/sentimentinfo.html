@@ -3,7 +3,11 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <title>舆情详细页面</title>
+
     <base href="<%=basePath%>">
+
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="js/jquery-3.3.1.min.js"></script>
 
     <!-- echarts画图依赖包  -->
     <script src="js/echarts.min.js"></script>
@@ -14,8 +18,6 @@
     <!-- 新 Bootstrap 核心 CSS 文件 -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
 
-    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
-    <script src="js/jquery-3.3.1.min.js"></script>
 
     <!-- 最新的 Bootstrap 核心 JavaScript 文件 -->
     <script src="js/bootstrap_3.3.7.js"></script>
@@ -23,6 +25,16 @@
 
     <link rel="stylesheet" href="css/bootstrap-table.min.css">
     <script src="js/bootstrap-table.min.js"></script>
+    <style>
+        mark {
+            margin: 0;
+            padding: 0;
+            border: none;
+            vertical-align: baseline;
+            background-color: yellow;
+            color: black;
+        }
+    </style>
 </head>
 <body>
 <div class="container">
@@ -49,12 +61,15 @@
         <a id="modal-74909" href="/" role="button" class="btn active btn-primary" data-toggle="modal">返回主页</a>
     </div>
 </div>
-</div>
 
 <!-- 为ECharts准备一个具备大小（宽高）的Dom -->
 <div id="main" style="height:400px"></div>
-<div id="main1" style="height:400px"></div>
-<div id="main2" style="height:400px"></div>
+<div class="row">
+    <div id="main1" class="col-md-4" style="height:400px"></div>
+    <div id="main2" class="col-md-8" style="height:400px"></div>
+</div>
+
+<div id="main3" style="height:400px"></div>
 
 
 <script type="text/javascript">
@@ -63,12 +78,12 @@
     eval("var " + href.substring(href.indexOf("?") + 1) + ";");
 
 
-
     // 基于准备好的dom，初始化echarts图表
-    var myChart1 = echarts.init(document.getElementById('main'));
+    var myChart = echarts.init(document.getElementById('main'));
+
     // 为echarts对象加载数据
-    $.get("http://localhost:8080/getRealTimeSentiment?id="+id).done(function (data) {
-        myChart1.setOption({
+    $.get("http://localhost:8080/getRealTimeSentiment?id=" + id).done(function (data) {
+        myChart.setOption({
             title: {
                 text: '舆情走势'
             },
@@ -97,6 +112,9 @@
                 }
             },
             yAxis: {
+                // axisLabel: {
+                //     show: false
+                // },
                 type: 'value',
                 boundaryGap: [0, '100%'],
                 splitLine: {
@@ -107,22 +125,45 @@
                 {
                     name: '正面',
                     type: 'line',
-                    data: data.y3
+                    itemStyle: {
+                        normal: {
+                            color: "#2ec7c9",
+                            lineStyle: {
+                                color: "#2ec7c9"
+                            }
+                        }
+                    },
+                    data: data.y2
                 },
                 {
                     name: '负面',
                     type: 'line',
+                    itemStyle: {
+                        normal: {
+                            color: "#c13733",
+                            lineStyle: {
+                                color: "#c13733"
+                            }
+                        }
+                    },
                     data: data.y1
                 },
                 {
                     name: '中性',
                     type: 'line',
-                    data: data.y2
+                    itemStyle: {
+                        normal: {
+                            color: "#a5b300",
+                            lineStyle: {
+                                color: "#a5b300"
+                            }
+                        }
+                    },
+                    data: data.y3
                 }
             ]
         });
     })
-
 
 
 </script>
@@ -132,47 +173,84 @@
     var href = location.href;
     eval("var " + href.substring(href.indexOf("?") + 1) + ";");
 
-
     // 基于准备好的dom，初始化echarts图表
-    var myChart = echarts.init(document.getElementById('main1'));
+    var myChart1 = echarts.init(document.getElementById('main1'));
     // 为echarts对象加载数据
     $.get("http://localhost:8080/getGenderCount?id=" + id).done(function (data) {
-        myChart.setOption({
-            title : {
+        myChart1.setOption({
+            title: {
                 text: '舆情性别占比',
                 subtext: '性别占比',
-                x:'center'
+                x: 'center'
             },
-            tooltip : {
+            tooltip: {
                 trigger: 'item',
                 formatter: "{a} <br/>{b} : {c} ({d}%)"
             },
-            series : [
+            series: [
                 {
                     name: '性别',
                     type: 'pie',
-                    radius : '50%',
+                    radius: '50%',
                     center: ['40%', '50%'],
                     data: data
                 }
             ]
         });
-    })
+    });
 
 
+</script>
+<script type="text/javascript">
+    var href = location.href;
+    // 基于准备好的dom，初始化echarts实例
+    var myChart2 = echarts.init(document.getElementById('main2'));
+    eval("var " + href.substring(href.indexOf("?") + 1) + ";");
+    $.get("http://localhost:8080/getFollowersCount?id=" + id).done(function (data) {
+        myChart2.setOption({
 
-
-
+            title: {
+                text: '粉丝数Top10'
+            },
+            tooltip: {},
+            legend: {
+                data: ['粉丝数']
+            },
+            xAxis: {
+                data: data.x
+            },
+            yAxis: {},
+            series: [{
+                name: '粉丝数',
+                type: 'bar',
+                itemStyle: {
+                    normal: {
+                        color: function () {
+                            return 'rgb(' + [
+                                Math.round(Math.random() * 160),
+                                Math.round(Math.random() * 160),
+                                Math.round(Math.random() * 160)
+                            ].join(',') + ')';
+                        }
+                    }
+                },
+                data: data.y
+            }]
+        });
+    });
 </script>
 
 
 <script type="text/javascript">
     var href = location.href;
     eval("var " + href.substring(href.indexOf("?") + 1) + ";");
-    var chart = echarts.init(document.getElementById('main2'));
-
-    $.get("http://localhost:8080/getWordCloud?id="+id).done(function (data) {
-        chart.setOption({
+    var myChart3 = echarts.init(document.getElementById('main3'));
+    $.get("http://localhost:8080/getWordCloud?id=" + id).done(function (data) {
+        myChart3.setOption({
+            title: {
+                text: '词云图',
+                x: 'center'
+            },
             series: [{
                 //类型  词云
                 type: 'wordCloud',
@@ -237,11 +315,13 @@
         //当点击查询按钮的时候执行,bootstrap-table前端分页是不能使用搜索功能，所以可以提取出来自定义搜索。后台代码，在后面给出
         $("#queryBtn").bind("click", initTable);
     });
+
     function initTable() {
         //先销毁表格
         $('#myTable').bootstrapTable('destroy');
+
         $('#myTable').bootstrapTable({
-            url: "wordSearch?id="+id,//请求后台的URL（*）
+            url: "wordSearch?id=" + id,//请求后台的URL（*）
             method: 'get',
             dataType: "json",
             dataField: 'rows',
@@ -256,13 +336,13 @@
             paginationPreText: '上一页',
             paginationNextText: '下一页',
             search: false, //是否显示表格搜索,bootstrap-table服务器分页不能使用搜索功能，可以自定义搜索框，上面jsp中已经给出，操作方法也已经给出
-            striped : true,//隔行变色
+            striped: true,//隔行变色
             showColumns: false,//是否显示 内容列下拉框
             showToggle: false, //是否显示详细视图和列表视图的切换按钮
             clickToSelect: true,  //是否启用点击选中行
             data_local: "zh-US",//表格汉化
             sidePagination: "server", //服务端处理分页
-            queryParamsType : "limit",//设置为 ‘limit’ 则会发送符合 RESTFul 格式的参数.
+            queryParamsType: "limit",//设置为 ‘limit’ 则会发送符合 RESTFul 格式的参数.
             queryParams: function (params) {//自定义参数，这里的参数是传给后台的，我这是是分页用的
 //            请求服务器数据时，你可以通过重写参数的方式添加一些额外的参数，例如 toolbar 中的参数 如果
 //　　　　　　　queryParamsType = 'limit' ,返回参数必须包含limit, offset, search, sort, order
@@ -282,7 +362,7 @@
                 field: 'user_id',
                 title: '用户编号'
             }, {
-                field: 'created_at',
+                field: 'article_created_at',
                 title: '时间'
             }, {
                 field: 'reposts_count',
@@ -299,7 +379,7 @@
             }, {
                 field: 'page_url',
                 title: '地址'
-            } ],
+            }],
             onLoadSuccess: function () {
             },
             onLoadError: function () {
@@ -309,11 +389,12 @@
     }
 
     function operateFormatter(value, row, index) {
-        return '<button  type="button" onClick="showConsumeRecord('+id+')"  class="btn btn-xs btn-primary" data-toggle="modal" data-target="#consumeModal">查看</button>';
+        return '<button  type="button" onClick="showConsumeRecord(' + id + ')"  class="btn btn-xs btn-primary" data-toggle="modal" data-target="#consumeModal">查看</button>';
     }
 
-
-
+    function searchId() {
+        initTable();
+    }
 
 
 </script>

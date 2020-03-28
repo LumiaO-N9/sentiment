@@ -4,35 +4,39 @@ import com.google.gson.Gson
 import com.shujia.Constant
 import com.shujia.common.SparkTool
 import kafka.serializer.StringDecoder
-import org.apache.spark.storage.StorageLevel
-import org.apache.spark.streaming.dstream.ReceiverInputDStream
 import org.apache.spark.streaming.kafka.KafkaUtils
 import org.apache.spark.streaming.{Durations, StreamingContext}
-
 import com.shujia.bean.ScalaClass.WeiBoArticle
+import org.apache.kafka.clients.consumer.ConsumerConfig
+import org.elasticsearch.spark.sql._
 
 object WeiBoArticleToES extends SparkTool {
   /**
-    * 在run方法里面编写spark业务逻辑
-    */
+   * 在run方法里面编写spark业务逻辑
+   */
   override def run(args: Array[String]): Unit = {
 
-    //1、创建spark streaming 上下文对象
-    val ssc = new StreamingContext(sc, Durations.seconds(5))
-
-    val params = Map(
-      "zookeeper.connect" -> Constant.KAFKA_ZOOKEEPER_CONNECT,
-      "group.id" -> "asdaasdsdasf",
-      "auto.offset.reset" -> "smallest",
-      "zookeeper.connection.timeout.ms" -> "10000"
-    )
-    val topics = Map("ArticleItemTopic" -> 4)
+    //创建spark streaming 上下文对象
+    val ssc = new StreamingContext(sc, Durations.seconds(60))
 
     //读取kafka数据   评价表数据
-    val articlesDS: ReceiverInputDStream[(String, String)] = KafkaUtils.createStream[String, String, StringDecoder, StringDecoder](
-      ssc, params, topics, StorageLevel.MEMORY_AND_DISK_SER
-    )
 
+    val kafkaParams = Map(
+      ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG -> Constant.KAFKA_BOOTSTRAP_SERVERS,
+      ConsumerConfig.GROUP_ID_CONFIG -> "success2",
+      ConsumerConfig.AUTO_OFFSET_RESET_CONFIG -> "smallest"
+    )
+    /**
+     * direct模式  主动拉取kafka数据   文章数据
+     *
+     */
+    val articlesDS = KafkaUtils.createDirectStream[String, String, StringDecoder, StringDecoder](
+      ssc,
+      kafkaParams,
+      Set("ArticleItemTopic")
+    )
+    val SparkSQL = sql
+    import SparkSQL.implicits._
     //将数据写入ES
     articlesDS.foreachRDD(rdd => {
 
@@ -40,12 +44,12 @@ object WeiBoArticleToES extends SparkTool {
       val caseRDD = rdd.map(_._2).map(line => {
         val gson = new Gson()
         gson.fromJson(line, classOf[WeiBoArticle])
-      })
-
-      //导入隐式转换
-      import org.elasticsearch.spark._
-      //es.mapping.id  如果不指定，默认随机分配一个id   必须唯一
-      caseRDD.saveToEs("article/fulltext", Map("es.mapping.id" -> "id"))
+      }).toDF()
+      val cfg = Map(
+        ("es.resource", "article/fulltext"),
+        ("es.mapping.id", "id")
+      )
+      caseRDD.saveToEs(cfg)
     })
 
     ssc.start()
@@ -55,17 +59,19 @@ object WeiBoArticleToES extends SparkTool {
   }
 
   /**
-    * 初始化spark配置
-    *  conf.setMaster("local")
-    */
+   * 初始化spark配置
+   *  conf.setMaster("local")
+   */
   override def init(): Unit = {
     conf.setMaster("local[4]")
 
     //指定es配置
-    conf.set("cluster.name", "my-application")
+    conf.set("cluster.name", "bigdata-es")
     conf.set("es.index.auto.create", "true")
-    conf.set("es.nodes", "node1,node2,node3")
+    conf.set("es.nodes", "master,node1,node2")
+    conf.set("es.port", "9200")
     conf.set("es.index.read.missing.as.empty", "true")
     conf.set("es.nodes.wan.only", "true")
+    conf.set("es.mapping.date.rich", "false")
   }
 }

@@ -1,4 +1,6 @@
 # -*- coding:utf-8 -*-
+import random
+
 from scrapy import signals
 from scrapy.exceptions import DontCloseSpider
 from scrapy.spiders import Spider, CrawlSpider
@@ -76,7 +78,6 @@ class RedisMixin(object):
 
     def next_requests(self):
 
-
         """Returns a request to be scheduled or none."""
         use_set = self.settings.getbool('REDIS_START_URLS_AS_SET', defaults.START_URLS_AS_SET)
         fetch_one = self.server.spop if use_set else self.server.lpop
@@ -114,8 +115,8 @@ class RedisMixin(object):
         return self.make_requests_from_url(url)
 
     def schedule_next_requests(self):
-        print("等待0.5秒")
-        time.sleep(2)
+        print("等待1~3秒")
+        time.sleep(random.randint(1, 3))
         """Schedules a request if available"""
         # TODO: While there is capacity, schedule a batch of redis requests.
         for req in self.next_requests():
