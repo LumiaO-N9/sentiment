@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="sentiment_web" />
+        <module name="sentiment_compute" />
+        <module name="sentiment_scheduler" />
+        <module name="sentiment_common" />
+      </profile>
+    </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="sentiment" target="1.5" />
+      <module name="sentiment_common" target="1.8" />
+      <module name="sentiment_compute" target="1.8" />
+      <module name="sentiment_scheduler" target="1.8" />
+      <module name="sentiment_web" target="1.8" />
+    </bytecodeTargetLevel>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="sentiment_web" options="-parameters" />
+    </option>
+  </component>
+</project>

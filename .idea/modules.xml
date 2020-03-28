@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/sentiment.iml" filepath="$PROJECT_DIR$/sentiment.iml" />
+      <module fileurl="file://$PROJECT_DIR$/sentiment_common/sentiment_common.iml" filepath="$PROJECT_DIR$/sentiment_common/sentiment_common.iml" />
+      <module fileurl="file://$PROJECT_DIR$/sentiment_compute/sentiment_compute.iml" filepath="$PROJECT_DIR$/sentiment_compute/sentiment_compute.iml" />
+      <module fileurl="file://$PROJECT_DIR$/sentiment_scheduler/sentiment_scheduler.iml" filepath="$PROJECT_DIR$/sentiment_scheduler/sentiment_scheduler.iml" />
+      <module fileurl="file://$PROJECT_DIR$/sentiment_web/sentiment_web.iml" filepath="$PROJECT_DIR$/sentiment_web/sentiment_web.iml" />
+    </modules>
+  </component>
+</project>

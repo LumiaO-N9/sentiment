@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ScalaCompilerConfiguration">
+    <profile name="Maven 1" modules="sentiment_common,sentiment_compute,sentiment_schduler,sentiment_scheduler">
+      <parameters>
+        <parameter value="-target:jvm-1.7" />
+      </parameters>
+    </profile>
+  </component>
+</project>
